@@ -14,7 +14,7 @@ user='rus'
 domainSufix='.rus.visual'
 # Текущая директория
 sitesRootDirectory="$(pwd)/"
-# Путь к PHPStorm для того чтобы после создания сайта, открыть проэкт
+# Путь к PHPStorm для того чтобы после создания сайта, открыть проэкт, если будет пусто то не будет открывать проэкты в IDE
 # https://www.jetbrains.com/help/phpstorm/2017.1/working-with-phpstorm-features-from-command-line.html
 # Для того чтобы создать command line launcher нужно перейти Tools>Create command-line Launcher и указать path и имя где будет лежать скрипт и нажать Ok.
 # Обычно это ~/bin/pstorm
