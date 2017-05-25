@@ -148,6 +148,10 @@ sitesAvailable='/etc/apache2/sites-available/'
 # Формируем имя конфиг фала VHOST
 sitesAvailabledomain=$sitesAvailable$name.conf
 
+# Если нужно создадим запись в файле хоста
+# закоментировать если мы делаем проброс на роутере
+sed -i "1s/^/127.0.0.1 $name\n/" /etc/hosts
+
 # Бросим меседж о начале создания файла хоста
 echo "Creating a vhost for $sitesAvailabledomain with a webroot $WEB_ROOT_DIR"
 
@@ -171,10 +175,6 @@ echo -e
 coloredEcho 'New Virtual Host Created' green
 echo -e 
 
-# Если нужно создадим запись в файле хоста
-# закоментировать если мы делаем проброс на роутере
-
-#sed -i "1s/^/127.0.0.1 $name\n/" /etc/hosts
 
 # Енейблим наш новый сайт
 a2ensite $name
@@ -197,13 +197,16 @@ if [ "$createContent" = "y" -o "$createContent" = "Y" -o "$createContent" = "Yes
       echo "Can't create content on new site, $WEB_ROOT_DIR is not Empty"
     else
 	# Выведем список предлагаемых варияантов
+	echo -e
 	echo "What do you want?"
+	echo -e
 	echo "0.  Cancel creating content"
 	echo "1.  Create 'index.html'"
 	echo "2.  Create 'index.php'"
 	echo "3.  Create 'Symfony 3 Project'"
 	echo "4.  Create 'YII 2 Project'"
 	echo "5.  Create 'Laravel 5 Project'"
+	echo "6.  Create WordPress Project"
 	echo "10. Clone  Git Repository"
 	
 	echo -e
@@ -274,7 +277,25 @@ if [ "$createContent" = "y" -o "$createContent" = "Y" -o "$createContent" = "Yes
 	    
 	    chmod -R 777 "$WEB_ROOT_DIR/../storage" "$WEB_ROOT_DIR/../bootstrap/cache"
 	  ;;
-	  6) echo "six" ;;
+	  6) 
+	      echo -e
+	      echo "Download latest WordPress version."
+	      echo -e
+	      cd $WEB_ROOT_DIR
+	      # Качнем последнюю версию
+	      curl -O https://wordpress.org/latest.tar.gz
+	      # Рапакуем
+	      tar -zxvf latest.tar.gz
+	      # Зайдем в директорию и скопируем все в родительскую папку
+	      cd wordpress
+	      # скопируем все в родительскую папку
+	      cp -rf . ..
+	      # Вернемся вродительскую директорию
+	      cd ..
+	      # Грохнем ненужное
+	      rm -R wordpress
+	      rm -R latest.tar.gz
+	  ;;
 	  7) echo "seven" ;;
 	  8) echo "eight" ;;
 	  9) echo "nine" ;;
