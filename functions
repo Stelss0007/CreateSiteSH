@@ -1,0 +1,103 @@
+#!/bin/bash
+
+set -e
+
+
+function getUserName() {
+  echo logname
+}
+
+# Функция разукрашка
+function coloredEcho(){
+    local exp=$1;
+    local color=$2;
+    if ! [[ $color =~ '^[0-9]$' ]] ; then
+       case $(echo $color | tr '[:upper:]' '[:lower:]') in
+        black) color=0 ;;
+        red) color=1 ;;
+        green) color=2 ;;
+        yellow) color=3 ;;
+        blue) color=4 ;;
+        magenta) color=5 ;;
+        cyan) color=6 ;;
+        white|*) color=7 ;; # white or invalid color
+       esac
+    fi
+    tput setaf $color;
+    echo $exp;
+    tput sgr0;
+}
+
+function checkPrograms() {
+
+  # Проверим Апач
+  if which apache2 >/dev/null; then
+      coloredEcho "- Apache2 exists" green
+  else
+      coloredEcho "- Apache2 does not exist, please install apache2" red
+      exit 1
+  fi
+  
+  # Проверим Композер
+  if which composer >/dev/null; then
+      coloredEcho "- Composer exists" green
+  else
+      coloredEcho "- Composer does not exist, please install composer" red
+      exit 1
+  fi
+    
+}
+
+function checkConfigurationFile() {
+  if [ -f "$confFile" ]
+  then
+    echo 'conf file ready'
+  else
+    echo -e
+    echo 'System detect your firs starting.'
+    echo -e
+    echo 'Please answer for nex questions:'
+    echo -e
+    createConfigurationFile
+    echo -e
+    echo "Config file was created. You can edit this $confFile"
+    echo -e
+  fi
+  
+  source $confFile
+} 
+
+function createConfigurationFile() {
+  read -p "Enter your system UserName (currentUserName): " confUserName
+  confUserName=${confUserName:-currentUserName}
+  read -p "Enter your webserver port (80): " confPort
+  confPort=${confPort:-80}
+  read -p "Enter your websites sufix (.site.visual): " confWebsiteSufix
+  confWebsiteSufix=${confWebsiteSufix:-.site.visual}
+  read -p "Enter your PHPStorm CLI path, empty if not exist (''): " confphpStormCLI
+  confphpStormCLI=${confphpStormCLI:-""}
+  
+  echo "
+# Здесь нужно настроить под себя
+
+# Мой текущий юзер под которым я работаю, он нужен для того чтобы создавть директории и запускать скрипты от его имени (git, composer)
+user='$confUserName'
+
+# Порт вебсервера
+port='$confPort'
+
+# Суфикс домена, у меня роутер разворачивает все *.rus.visual на мой IP
+domainSufix='$confWebsiteSufix'
+
+# Текущая директория
+sitesRootDirectory=\"\$(pwd)/\"
+
+# Путь к PHPStorm для того чтобы после создания сайта, открыть проэкт, если будет пусто то не будет открывать проэкты в IDE
+# https://www.jetbrains.com/help/phpstorm/2017.1/working-with-phpstorm-features-from-command-line.html
+# Для того чтобы создать command line launcher нужно перейти Tools>Create command-line Launcher и указать path и имя где будет лежать скрипт и нажать Ok.
+# Обычно это ~/bin/pstorm
+
+# phpStormCLI='~/bin/pstorm'
+phpStormCLI='$confphpStormCLI'
+  " > $confFile
+}

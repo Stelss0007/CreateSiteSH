@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+# Название модуля
+modName=$1
+
+
+case $modName in
+  create-host) 
+      serverType="$2"
+      siteName="$3"
+      rootDir="$4"
+      
+      if [ -z "$serverType" ]; then
+	  serverType='apache'
+      fi
+      
+      $HOME/zena/$modName $serverType $siteName $rootDir
+  ;;
+  create-site) 
+      siteName="$2"
+      rootDir="$3"
+      
+      sudo $HOME/zena/$modName $siteName $rootDir
+  ;;
+  *)
+      echo "Unknown command"
+  ;;
+esac

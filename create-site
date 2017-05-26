@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Скрипт создания сайта на локальном компе
 
 ######################################################
@@ -134,7 +136,7 @@ echo "
     AllowOverride All
     Require all granted
   </Directory>
-</VirtualHost>" > $sitesAvailabledomain
+</VirtualHost>" > "$sitesAvailabledomain"
 }
 
 function symfonyAppDevFileUpdate() {

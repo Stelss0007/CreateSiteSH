@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#set -eu
+
+hostType=$1
+
+echo "Create host:"
+
+case $hostType in
+  apache) 
+      sudo $HOME/zena/create-host-apache $2 $3
+  ;;
+  
+  nginx) 
+      sudo $HOME/zena/create-host-nginx $2 $3
+  ;;
+  
+  *)
+      echo "Unknown server!"
+      echo "Supported servers:"
+      echo "  apache"
+      echo "  nginx"
+  ;;
+esac
+
