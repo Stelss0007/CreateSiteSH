@@ -588,7 +588,7 @@ fi
 # Форимируем имя сайта вмете с суфиксом
 name=$name$domainSufix
 # Имейл поумолчанию
-email=${3-'admin@rus.visual'}
+email="admin@$name"
 # Директория где лежат sites-enabled
 sitesEnable='/etc/apache2/sites-enabled/'
 # Директория где лежат sites-available
@@ -696,7 +696,7 @@ if [ "$createContent" = "y" -o "$createContent" = "Y" -o "$createContent" = "Yes
 	  ;;
 	  
 	  3)  
-	    su rus -c "composer create-project symfony/framework-standard-edition $WEB_ROOT_DIR"
+	    su $user -c "composer create-project symfony/framework-standard-edition $WEB_ROOT_DIR"
 	    
 	    WEB_ROOT_DIR="$WEB_ROOT_DIR/web"
 	    generateVhost
@@ -710,15 +710,15 @@ if [ "$createContent" = "y" -o "$createContent" = "Y" -o "$createContent" = "Yes
 	    siteUrl="http://$name/app_dev.php"
 	  ;;
 	  4)
-	    su rus -c "composer global require 'fxp/composer-asset-plugin:^1.3.1'"
-	    su rus -c "composer create-project --prefer-dist yiisoft/yii2-app-basic $WEB_ROOT_DIR"
+	    su $user -c "composer global require 'fxp/composer-asset-plugin:^1.3.1'"
+	    su $user -c "composer create-project --prefer-dist yiisoft/yii2-app-basic $WEB_ROOT_DIR"
 	    
 	    WEB_ROOT_DIR="$WEB_ROOT_DIR/web"
 	    generateVhost
 	    service apache2 reload
 	  ;;
 	  5) 
-	    su rus -c "composer create-project laravel/laravel $WEB_ROOT_DIR '5.0.*' --prefer-dist"
+	    su $user -c "composer create-project laravel/laravel $WEB_ROOT_DIR '5.0.*' --prefer-dist"
 	    
 	    WEB_ROOT_DIR="$WEB_ROOT_DIR/public"
 	    generateVhost
@@ -751,7 +751,7 @@ if [ "$createContent" = "y" -o "$createContent" = "Y" -o "$createContent" = "Yes
 	  10) 
 	    read -p "Repository path: " gitRepo
 	    
-	    su rus -c "git clone $gitRepo $WEB_ROOT_DIR"
+	    su $user -c "git clone $gitRepo $WEB_ROOT_DIR"
 	    
 	    read -p "Set up site root path $WEB_ROOT_DIR/: " rootPath
 	    
@@ -781,7 +781,7 @@ echo -e
 if [ -n "$phpStormCLI" ]; then
   read -p "Do you want open PHPStorm? (N/y): " openPhpStorm
   if [ "$openPhpStorm" = "y" -o "$openPhpStorm" = "Y" -o "$openPhpStorm" = "Yes" -o "$openPhpStorm" = "yes" ];  then
-    su rus -c "$phpStormCLI $sitePath &"
+    su $user -c "$phpStormCLI $sitePath &"
   fi
 fi
 
