@@ -6,25 +6,6 @@
 ####### Данные для конфигурации скрипта ##############
 ######################################################
 
-# Здесь нужно настроить под себя
-
-# Мой текущий юзер под которым я работаю, он нужен для того чтобы создавть директории и запускать скрипты от его имени (git, composer)
-user='rus'
-
-# Суфикс домена, у меня роутер разворачивает все *.rus.visual на мой IP
-domainSufix='.rus.visual'
-
-# Текущая директория
-sitesRootDirectory="$(pwd)/"
-
-# Путь к PHPStorm для того чтобы после создания сайта, открыть проэкт, если будет пусто то не будет открывать проэкты в IDE
-# https://www.jetbrains.com/help/phpstorm/2017.1/working-with-phpstorm-features-from-command-line.html
-# Для того чтобы создать command line launcher нужно перейти Tools>Create command-line Launcher и указать path и имя где будет лежать скрипт и нажать Ok.
-# Обычно это ~/bin/pstorm
-
-# phpStormCLI='~/bin/pstorm'
-phpStormCLI=''
-
 
 # Настройки закончились
 
@@ -39,8 +20,66 @@ name=$1
 # Директори гда будет лежать сайт
 WEB_ROOT_DIR=$2
 
+confFile="create-site.conf"
 
 ############################## Функции ############################################
+function checkConfigurationFile() {
+  if [ -f "$confFile" ]
+  then
+    echo 'conf file ready'
+  else
+    echo -e
+    echo 'System detect your firs starting.'
+    echo -e
+    echo 'Please answer for nex questions:'
+    echo -e
+    createConfigurationFile
+    echo -e
+    echo "Config file was created. You can edit this $confFile"
+    echo -e
+  fi
+  
+  source $confFile
+}
+
+function createConfigurationFile() {
+  read -p "Enter your system UserName (currentUserName): " confUserName
+  confUserName=${confUserName:-currentUserName}
+  read -p "Enter your webserver port (80): " confPort
+  confPort=${confPort:-80}
+  read -p "Enter your websites sufix (.site.visual): " confWebsiteSufix
+  confWebsiteSufix=${confWebsiteSufix:-.site.visual}
+  read -p "Enter your PHPStorm CLI path, empty if not exist (''): " confphpStormCLI
+  confphpStormCLI=${confphpStormCLI:-""}
+  
+  echo "
+# Здесь нужно настроить под себя
+
+# Мой текущий юзер под которым я работаю, он нужен для того чтобы создавть директории и запускать скрипты от его имени (git, composer)
+user='$confUserName'
+
+# Порт вебсервера
+port='$confPort'
+
+# Суфикс домена, у меня роутер разворачивает все *.rus.visual на мой IP
+domainSufix='$confWebsiteSufix'
+
+# Текущая директория
+sitesRootDirectory=\"\$(pwd)/\"
+
+# Путь к PHPStorm для того чтобы после создания сайта, открыть проэкт, если будет пусто то не будет открывать проэкты в IDE
+# https://www.jetbrains.com/help/phpstorm/2017.1/working-with-phpstorm-features-from-command-line.html
+# Для того чтобы создать command line launcher нужно перейти Tools>Create command-line Launcher и указать path и имя где будет лежать скрипт и нажать Ok.
+# Обычно это ~/bin/pstorm
+
+# phpStormCLI='~/bin/pstorm'
+phpStormCLI='$confphpStormCLI'
+  " > $confFile
+}
+
+function getUserName() {
+  echo logname
+}
 
 # Функция разукрашка
 function coloredEcho(){
@@ -85,7 +124,7 @@ function checkPrograms() {
 
 function generateVhost() {
 echo "
-<VirtualHost *:80>
+<VirtualHost *:$port>
   ServerName $name
   DocumentRoot $WEB_ROOT_DIR
   ServerAdmin $email
@@ -563,9 +602,13 @@ function symfonyBinAddFiles() {
 }
 #####################################################################################
 
+# Проверка конфигфайла, если нет то создать
+checkConfigurationFile
 
 # Прверим наличие нужного софта
 checkPrograms
+
+
 
 # Читаем даные с консоли, если не пердался параметром с консоли
 # Если парматр названия сайта не передавался, запросм его
@@ -629,8 +672,13 @@ a2ensite $name
 # Рестартуем Апач
 service apache2 reload
 
+if [ "$port" = "80" ]; then
+  siteUrl="http://$name/"
+else 
+  siteUrl="http://$name:$port/"
+fi
 
-siteUrl="http://$name/"
+
 sitePath=$WEB_ROOT_DIR
 
 
