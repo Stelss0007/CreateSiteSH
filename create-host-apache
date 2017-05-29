@@ -3,11 +3,11 @@
 #set -eu
 BASEDIR=$(dirname "$0")
 
-echo "Apache"
+echo "Create new Apache host..."
 
 confFile="$BASEDIR/create-site.conf"
 
-source $confFile
+source "$confFile"
 source "$BASEDIR/functions"
 
 # Название сайта
@@ -49,9 +49,6 @@ if [ -z "$WEB_ROOT_DIR" ];  then
   read -p "Enter WebRoot directory ($newSiteRootDirectory): " WEB_ROOT_DIR
 fi
 
-
-# Форимируем имя сайта вмете с суфиксом
-name=$name$domainSufix
 # Имейл поумолчанию
 email="admin@$name"
 # Директория где лежат sites-enabled
@@ -102,3 +99,10 @@ fi
 
 
 sitePath=$WEB_ROOT_DIR
+
+# Все готово, выводим соответствующий меседж
+echo -e
+echo "Done, your host was created at path: $sitePath,"
+echo "please browse to $siteUrl to check!"
+
+echo -e

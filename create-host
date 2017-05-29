@@ -8,11 +8,11 @@ echo "Create host:"
 
 case $hostType in
   apache) 
-      sudo $HOME/zena/create-host-apache $2 $3
+      sudo $HOME/zena/create-host-apache $2 $3 $4
   ;;
   
   nginx) 
-      sudo $HOME/zena/create-host-nginx $2 $3
+      sudo $HOME/zena/create-host-nginx $2 $3 $4
   ;;
   
   *)

@@ -101,3 +101,509 @@ sitesRootDirectory=\"\$(pwd)/\"
 phpStormCLI='$confphpStormCLI'
   " > $confFile
 }
+
+
+
+function generateVhost() {
+# Имейл поумолчанию
+email="admin@$name"
+# Директория где лежат sites-enabled
+sitesEnable='/etc/apache2/sites-enabled/'
+# Директория где лежат sites-available
+sitesAvailable='/etc/apache2/sites-available/'
+# Формируем имя конфиг фала VHOST
+sitesAvailabledomain=$sitesAvailable$name.conf
+
+if [ -z "$port" ]; then
+   port=80
+fi
+
+echo "
+<VirtualHost *:$port>
+  ServerName $name
+  DocumentRoot $WEB_ROOT_DIR
+  ServerAdmin $email
+
+  <Directory $WEB_ROOT_DIR >
+    Options -Includes -Indexes -ExecCGI
+    AllowOverride All
+    Require all granted
+  </Directory>
+</VirtualHost>" | sudo tee "$sitesAvailabledomain" > /dev/null
+}
+
+function symfonyAppDevFileUpdate() {
+echo "
+<?php
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Debug\Debug;
+
+// If you don't want to setup permissions the proper way, just uncomment the following PHP line
+// read http://symfony.com/doc/current/setup.html#checking-symfony-application-configuration-and-setup
+// for more information
+//umask(0000);
+
+// This check prevents access to debug front controllers that are deployed by accident to production servers.
+// Feel free to remove this, extend it, or make something more sophisticated.
+if ((
+        in_array(@\$_SERVER['REMOTE_ADDR'], array('127.0.0.1', 'fe80::1', '::1'))
+        &&
+        !isset(\$_SERVER['HTTP_CLIENT_IP'])
+        &&
+        !isset(\$_SERVER['HTTP_X_FORWARDED_FOR'])
+    )
+        ||
+    preg_match('/^192\.168\.\d{1,3}\.\d{1,3}$/', @\$_SERVER['REMOTE_ADDR']) // Ugly, but works)
+) {
+//pass
+} else {
+    header('HTTP/1.0 403 Forbidden');
+    exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
+}
+
+/** @var \Composer\Autoload\ClassLoader \$loader */
+\$loader = require __DIR__.'/../app/autoload.php';
+Debug::enable();
+
+\$kernel = new AppKernel('dev', true);
+\$kernel->loadClassCache();
+\$request = Request::createFromGlobals();
+\$response = \$kernel->handle(\$request);
+\$response->send();
+\$kernel->terminate(\$request, \$response);
+
+" > $WEB_ROOT_DIR/app_dev.php
+}
+
+
+function symfonyBinAssentsFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+write_title \"Cleaning assets\"
+rm -f \"\$WEB_DIR/js/\"*
+rm -f \"\$WEB_DIR/css/\"*
+
+write_title \"Installing assets\"
+exec_console assets:install --symlink \"\$@\"
+
+write_title \"Building assets\"
+exec_console assetic:dump \"\$@\"
+
+" > $WEB_ROOT_DIR/../bin/assets
+}
+
+function symfonyBinClearCacheFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+write_title \"Clearing cache\"
+exec_console cache:clear --no-warmup \"\$@\"
+
+" > $WEB_ROOT_DIR/../bin/clear-cache
+}
+
+
+function symfonyBinCommonFile() {
+echo "
+
+BIN_DIR=\$(cd \$(dirname \$0) && pwd)
+BASE_DIR=\$(cd \"\$BIN_DIR/..\" && pwd)
+APP_DIR=\"\$BASE_DIR/app\"
+WEB_DIR=\"\$BASE_DIR/web\"
+VENDOR_DIR=\"\$BASE_DIR/vendor\"
+CONSOLE=\"\$APP_DIR/console\"
+UNSAFE_BINS_FLAG=\"\$BASE_DIR/.allow_unsafe_bins\"
+COMPOSER_INSTALL_PROD_OPTIONS=\"--no-dev --no-interaction\"
+COMPOSER_INSTALL_DEV_OPTIONS=\"\"
+
+
+cd \$BASE_DIR
+[ -f \"\$BASE_DIR/.bin-config\" ] && . \"\$BASE_DIR/.bin-config\"
+
+
+detect_composer() {
+    local env_composer=\"\${COMPOSER_BIN:-}\"
+
+    if [ ! -z \"\$env_composer\" -a -f \"\$env_composer\" -a -x \"\$env_composer\" ]; then
+        echo \"\$env_composer\"
+        return
+    fi
+
+    set +e
+    local system_composer=\$(which \"composer\")
+    set -e
+
+    if [ ! -z \"\$system_composer\" -a -x \"\$system_composer\" ]; then
+        echo \"\$system_composer\"
+        return
+    fi
+
+    local composer=\"\$BASE_DIR/composer\"
+
+    for composer in \"\$BASE_DIR/composer\" \"\$BASE_DIR/composer.phar\"; do
+        if [ -f \"\$composer\" ]; then
+            echo \"\$(which php) \$composer\"
+            return
+        fi
+    done
+}
+
+COMPOSER=\"\$(detect_composer)\"
+
+unsafe_bin() {
+    if [ ! -f \"\$UNSAFE_BINS_FLAG\" ]; then
+        echo \"This script (\$0) is unsafe and can lead to data loss. If nevertheless you want to run it, create file '\$UNSAFE_BINS_FLAG'\"
+        exit 1
+    fi
+}
+
+exec_console() {
+    cmd=\$1
+    shift
+    \$CONSOLE \$cmd \"\$@\"
+}
+
+exec_bin() {
+    bin=\$1
+    shift
+    \"\$BIN_DIR/\$bin\" \"\$@\"
+}
+
+exec_vendor_bin() {
+    bin=\$1
+    shift
+    \"\$VENDOR_DIR/bin/\$bin\" \"\$@\"
+}
+
+exec_composer() {
+    if [ -z \"\$COMPOSER\" ]; then
+        echo \"Can't find composer\"
+        exit 1
+    fi
+
+    \$COMPOSER \"\$@\"
+}
+
+exec_composer_install_prod() {
+    exec_composer install \$COMPOSER_INSTALL_PROD_OPTIONS
+}
+
+exec_composer_install_dev() {
+    exec_composer install \$COMPOSER_INSTALL_DEV_OPTIONS
+}
+
+write_title() {
+    echo \"======= \$@\"
+}
+
+write_line() {
+    echo \" * \$@\"
+}
+
+read_symfony_parameter() {
+    parameters_file=\"\$APP_DIR/config/parameters.yml\"
+
+    if [ ! -f \"\$parameters_file\" ]; then
+        return
+    fi
+
+    default=\"\${2:-}\"
+    parameter=\"\$(cat \"\$parameters_file\" | sed -n \"s/^\s\+\$1:\s*\(.*\)\\$/\1/p\")\"
+
+    if [ \"\$parameter\" = \"null\" ]; then
+        parameter=\"\"
+    fi
+
+    if [ -z \"\$parameter\" ]; then
+        parameter=\"\$default\"
+    fi
+
+    echo -n \"\$parameter\"
+}
+
+get_switch() {
+    if [ ! -z \"\$2\" ]; then
+        echo -n \"\$1\$2\"
+    fi
+}
+
+" > $WEB_ROOT_DIR/../bin/common
+}
+
+
+function symfonyBinDatabaseDumpFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+
+
+
+dump_name=\"\${1:-}\"
+
+if [ -z \"\$dump_name\" ]; then
+    echo \"You should provide database dump name\"
+    exit 1
+fi
+
+dump_dir=\"\$BASE_DIR/var/db-dumps\"
+dump_file=\"\$dump_dir/\${dump_name}.sql.gz\"
+
+if [ -e \"\$dump_dir\" ]; then
+    mkdir -p \"\$dump_dir\"
+fi
+
+if [ -f \"\$dump_file\" ]; then
+    echo \"Database dump file already exists\"
+    exit 1
+fi
+
+write_title \"Dumping database to '\$dump_file'\"
+mysqldump \\
+    \$(get_switch \"-u \" \"\$(read_symfony_parameter database_user root)\") \\
+    \$(get_switch \"-p\" \"\$(read_symfony_parameter database_password)\") \\
+    \$(get_switch \"-h \" \"\$(read_symfony_parameter database_host localhost)\") \\
+    \$(get_switch \"-P \" \"\$(read_symfony_parameter database_port 3306)\") \\
+    \"\$(read_symfony_parameter database_name)\" \\
+    | gzip -c > \"\$dump_file\"
+
+
+" > $WEB_ROOT_DIR/../bin/database-dump
+}
+
+
+function symfonyBinDatabaseRebuildFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+unsafe_bin
+
+
+set +e
+write_title \"Dropping database\"
+exec_console doctrine:database:drop --force --quiet \"\$@\"
+set -e
+
+write_title \"Creating database\"
+exec_console doctrine:database:create \"\$@\"
+
+write_title \"Updating database schema\"
+exec_console doctrine:schema:update --force \"\$@\"
+
+write_title \"Setting all migrations as migrated\"
+exec_console doctrine:migrations:version --add --all --no-interaction \"\$@\"
+
+write_title \"Loading fixtures\"
+exec_console hautelook_alice:doctrine:fixtures:load --no-interaction --append \"\$@\"
+
+" > $WEB_ROOT_DIR/../bin/dev-database-rebuild
+}
+
+
+function symfonyBinDevInstallFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"$(dirname $0)/common\"
+
+unsafe_bin
+
+
+write_title \"Installing vendors\"
+exec_composer_install_dev
+
+write_title \"Creating database\"
+exec_console doctrine:database:create \"$@\"
+
+write_title \"Updating database schema\"
+exec_console doctrine:schema:update --force \"$@\"
+
+write_title \"Setting all migrations as migrated\"
+exec_console doctrine:migrations:version --add --all --no-interaction \"$@\"
+
+write_title \"Loading fixtures\"
+exec_console doctrine:fixtures:load --no-interaction --append \"$@\"
+
+exec_bin assets \"$@\"
+exec_bin fix-permissions 2> /dev/null
+
+" > $WEB_ROOT_DIR/../bin/dev-install
+}
+
+function symfonyBinDevRebuildFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+unsafe_bin
+
+
+write_title \"Installing vendors\"
+exec_composer_install_dev
+
+exec_bin clear-cache \"\$@\"
+exec_bin dev-database-rebuild \"\$@\"
+exec_bin assets \"\$@\"
+exec_bin fix-permissions 2> /dev/null
+
+" > $WEB_ROOT_DIR/../bin/dev-rebuild
+}
+
+
+function symfonyBinFixPermissionsFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+
+get_current_user() {
+    if [ \"\$(id -u)\" -eq 0 -a ! -z \"\${SUDO_USER:-}\" ]; then
+        echo \"\$SUDO_USER\"
+    else
+        echo \"\$(whoami)\"
+    fi
+}
+
+set_acl_full() {
+    user=\"\$(get_current_user)\"
+    set +e
+    find \"\$@\" -type d -print0 | xargs -0 setfacl -d -m u:www-data:rwX -m u:\$user:rwX
+    find \"\$@\" -print0 | xargs -0 setfacl -m u:www-data:rwX -m u:\$user:rwX
+    set -e
+}
+
+set_acl_limited() {
+    user=\"\$(get_current_user)\"
+    set +e
+    find \"\$@\" -type d -print0 | xargs -0 setfacl -d -m u:www-data:rX -m u:\$user:rwX
+    find \"\$@\" -print0 | xargs -0 setfacl -m u:www-data:rX -m u:\$user:rwX
+    set -e
+}
+
+remove_acl() {
+    setfacl -bR \"\$@\"
+}
+
+case \"\${1:-apply}\" in
+    apply)
+        write_title \"Setting up permissions\"
+        set_acl_full \
+            \"\$APP_DIR/cache\" \"\$APP_DIR/logs\" \"\$BASE_DIR/var\" \"\$BASE_DIR/web/images\" \"\$BASE_DIR/web/assets\" \\
+            \"\$BASE_DIR/web/assets/cache\" \"\$BASE_DIR/web/images\" \"\$BASE_DIR/web/images/blog\" \\
+            \"\$BASE_DIR/web/images/job\" \"\$BASE_DIR/web/images/portfolio\" \"\$BASE_DIR/web/images/technology\" \\
+    ;;
+
+    remove)
+        write_title \"Removing permissions\"
+        remove_acl \"\$BASE_DIR\"
+    ;;
+
+    *)
+        echo \"\$0 Invalid operation\"
+    ;;
+esac
+
+" > $WEB_ROOT_DIR/../bin/fix-permissions
+}
+
+
+
+function symfonyBinInstallFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+unsafe_bin
+
+
+write_title \"Installing vendors (without dev packages)\"
+exec_composer_install_prod
+
+write_title \"Creating database\"
+exec_console doctrine:database:create \"\$@\"
+
+write_title \"Updating database schema\"
+exec_console doctrine:schema:update --force \"\$@\"
+
+write_title \"Setting all migrations as migrated\"
+exec_console doctrine:migrations:version --add --all --no-interaction \"\$@\"
+
+exec_bin assets \"\$@\"
+exec_bin fix-permissions 2> /dev/null
+
+" > $WEB_ROOT_DIR/../bin/fix-permissions
+}
+
+function symfonyBinUpdateFile() {
+echo "
+#!/bin/sh
+
+set -e; set -u
+. \"\$(dirname \$0)/common\"
+
+
+write_title \"Installing vendors (without dev packages)\"
+exec_composer_install_prod
+
+exec_bin update-assets-version
+
+exec_bin clear-cache
+
+write_title \"Running migrations\"
+exec_console doctrine:migrations:migrate --no-interaction
+
+exec_bin assets
+exec_bin fix-permissions 2> /dev/null
+
+write_title \"Warming up cache\"
+exec_console cache:warmup
+
+
+" > $WEB_ROOT_DIR/../bin/fix-permissions
+}
+
+
+function symfonyBinAddFiles() {
+  symfonyBinAssentsFile
+  symfonyBinClearCacheFile
+  symfonyBinCommonFile
+  symfonyBinDatabaseDumpFile
+  symfonyBinDatabaseRebuildFile
+  symfonyBinDevInstallFile
+  symfonyBinDevRebuildFile
+  symfonyBinFixPermissionsFile
+  symfonyBinInstallFile
+  symfonyBinUpdateFile
+}
+
+
+function checkIfIsDomainName() {
+    name=$1
+    pattern="^(([a-zA-Z](-?[a-zA-Z0-9])*)\.)*[a-zA-Z](-?[a-zA-Z0-9])+\.[a-zA-Z]{2,}$"
+    #echo "$1" | grep -E "^(([a-zA-Z](-?[a-zA-Z0-9])*)\.)*[a-zA-Z](-?[a-zA-Z0-9])+\.[a-zA-Z]{2,}$"
+    if [[ $name =~ $pattern ]]; then
+        echo "Yes"
+    else
+        echo "No"
+    fi
+}

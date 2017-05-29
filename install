@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo 'Zena Install'
+
+APP_DIR="$HOME/zena"
+
+echo $APP_DIR
+
+if [ ! -d "$APP_DIR" ];  then
+    mkdir -p -m 0755 $APP_DIR
+    git clone git@github.com:Stelss0007/CreateSiteSH.git "$APP_DIR"
+    cp $APP_DIR/zena $HOME/bin/zena
+else
+    echo 'zena already exists!'
+fi
+
+

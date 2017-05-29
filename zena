@@ -2,29 +2,142 @@
 
 set -e
 
+BASEDIR=$(dirname "$0")
+APP_NAME='zena'
+
+confFile="$HOME/$APP_NAME/create-site.conf"
+functionFile="$HOME/$APP_NAME/functions"
+
+source "$confFile"
+source "$functionFile"
+
 # Название модуля
 modName=$1
+shift; #remove first argiment from option list
+
+function showHelp() {
+    echo "You can use this keys:"
+    echo "  create-host -- to generate host file and create directory"
+    echo "  create-content -- to generate content (create index file, generete Symfony, YII2, Laravel project, WP, etc...."
+    echo "  create-site -- to generate host, and generate content"
+}
+
+# Текущая директория
+sitesRootDirectory="$(pwd)"
+serverType="apache"
+name=""
+WEB_ROOT_DIR=""
+port="80"
+
+
+checkConfigurationFile
+
+while getopts ':hs:n:d:' option; do
+
+  case "$option" in
+    h) showHelp
+       exit
+       ;;
+    s) serverType=$OPTARG
+       echo "Web Server is '$serverType'"
+       ;;
+    n) name=$OPTARG
+       echo "Host name is '$name'"
+       ;;
+    d) WEB_ROOT_DIR=$OPTARG
+       echo "WEB_ROOT_DIR is '$WEB_ROOT_DIR'"
+       ;;
+    p) port=$OPTARG
+       echo "Port is '$port'"
+       ;;
+    :) printf "Missing argument for -%s\n" "$OPTARG" >&2
+       exit 1
+       ;;
+   \?) printf "illegal option: -%s\n" "$OPTARG" >&2
+       exit 1
+       ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+
+# Читаем даные с консоли, если не пердался параметром с консоли
+# Если парматр названия сайта не передавался, запросм его
+if [ -z "$name" ];  then
+  read -p "Enter SiteName (test): " name
+  name=${name:-test}
+fi
+
+isRealDomain=$(checkIfIsDomainName $name)
+
+if [ "$isRealDomain" = "No" ]; then
+    name=$name$domainSufix
+fi
+
+
+# Предложим путь для директории сайта относительно текущего каталога
+newSiteRootDirectory="$sitesRootDirectory/$name"
+
+#Читаем даные с консоли, если не пердался параметром с консоли
+# Если парматр директории сайта не передавался, запросм его
+if [ -z "$WEB_ROOT_DIR" ];  then
+  read -p "Enter WebRoot directory ($newSiteRootDirectory): " WEB_ROOT_DIR
+fi
+
+
+# Если параметр $WEB_ROOT_DIR не пустой, создадим директорию, если ее нет,
+# установим права и назанчим пользователя и групу
+if [ -z "$WEB_ROOT_DIR" ];  then
+  mkdir -p -m 0755 $newSiteRootDirectory
+  #chown -R "$user:$user" $newSiteRootDirectory
+  WEB_ROOT_DIR=$newSiteRootDirectory
+fi
+
+echo $WEB_ROOT_DIR
 
 
 case $modName in
+
   create-host) 
-      serverType="$2"
-      siteName="$3"
-      rootDir="$4"
-      
-      if [ -z "$serverType" ]; then
-	  serverType='apache'
+      $HOME/$APP_NAME/create-host $serverType $name $WEB_ROOT_DIR $port
+  ;;
+
+   create-content) 
+      $HOME/$APP_NAME/create-content $WEB_ROOT_DIR $name
+  ;;
+
+  create-site)
+      $HOME/$APP_NAME/create-host $serverType $name $WEB_ROOT_DIR
+      $HOME/$APP_NAME/create-content $WEB_ROOT_DIR $name
+
+      if [ "$port" = "80" ]; then
+          siteUrl="http://$name/"
+      else
+          siteUrl="http://$name:$port/"
       fi
-      
-      $HOME/zena/$modName $serverType $siteName $rootDir
+
+      # Все готово, выводим соответствующий меседж
+      echo -e
+      echo "Done, your host was created at path: $WEB_ROOT_DIR,"
+      echo "please browse to $siteUrl to check!"
+
+      echo -e
+
+      # Можем открыть PHPStorm
+      if [ -n "$phpStormCLI" ]; then
+          read -p "Do you want open PHPStorm? (N/y): " openPhpStorm
+          if [ "$openPhpStorm" = "y" -o "$openPhpStorm" = "Y" -o "$openPhpStorm" = "Yes" -o "$openPhpStorm" = "yes" ];  then
+             $phpStormCLI $sitePath &
+          fi
+      fi
   ;;
-  create-site) 
-      siteName="$2"
-      rootDir="$3"
-      
-      sudo $HOME/zena/$modName $siteName $rootDir
+
+  help)
+      showHelp
   ;;
+  
   *)
-      echo "Unknown command"
+      echo "Unknown command!"
+      echo "Read doc. zena help"
   ;;
 esac
