@@ -16,7 +16,9 @@ source "$confFile"
 
 # Название модуля
 modName=$1
-shift; #remove first argiment from option list
+if [ "$modName" != "-h" ];then
+    shift; #remove first argiment from option list
+fi
 
 function showHelp() {
     echo "You can use this keys:"
