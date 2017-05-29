@@ -8,6 +8,8 @@ APP_NAME='zena'
 confFile="$HOME/$APP_NAME/create-site.conf"
 functionFile="$HOME/$APP_NAME/functions"
 
+checkConfigurationFile
+
 source "$confFile"
 source "$functionFile"
 
@@ -28,9 +30,6 @@ serverType="apache"
 name=""
 WEB_ROOT_DIR=""
 port="80"
-
-
-checkConfigurationFile
 
 while getopts ':hs:n:d:' option; do
 
