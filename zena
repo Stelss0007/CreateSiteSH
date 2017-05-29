@@ -8,10 +8,11 @@ APP_NAME='zena'
 confFile="$HOME/$APP_NAME/create-site.conf"
 functionFile="$HOME/$APP_NAME/functions"
 
+source "$functionFile"
+
 checkConfigurationFile
 
 source "$confFile"
-source "$functionFile"
 
 # Название модуля
 modName=$1
