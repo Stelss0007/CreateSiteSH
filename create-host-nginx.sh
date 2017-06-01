@@ -3,7 +3,7 @@
 #set -eu
 BASEDIR=$(dirname "$0")
 
-echo "Create new Apache host..."
+echo "Create new NGINX host..."
 
 confFile="$BASEDIR/create-site.conf"
 
@@ -18,17 +18,29 @@ WEB_ROOT_DIR=$2
 
 function generateVhost() {
 echo "
-<VirtualHost *:$port>
-  ServerName $name
-  DocumentRoot $WEB_ROOT_DIR
-  ServerAdmin $email
-  
-  <Directory $WEB_ROOT_DIR >
-    Options -Includes -Indexes -ExecCGI
-    AllowOverride All
-    Require all granted
-  </Directory>
-</VirtualHost>" > "$sitesAvailabledomain"
+server {
+    listen *:$port;
+
+    root $WEB_ROOT_DIR;
+
+    index index.php index.html index.htm index.nginx-debian.html;
+
+    server_name $name;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+" > "$sitesAvailabledomain"
 }
 
 
@@ -52,9 +64,9 @@ fi
 # Имейл поумолчанию
 email="admin@$name"
 # Директория где лежат sites-enabled
-sitesEnable='/etc/apache2/sites-enabled/'
+sitesEnable='/etc/nginx/sites-enabled/'
 # Директория где лежат sites-available
-sitesAvailable='/etc/apache2/sites-available/'
+sitesAvailable='/etc/nginx/sites-available/'
 # Формируем имя конфиг фала VHOST
 sitesAvailabledomain=$sitesAvailable$name.conf
 
@@ -69,7 +81,6 @@ echo "Creating a vhost for $sitesAvailabledomain with a webroot $WEB_ROOT_DIR"
 # установим права и назанчим пользователя и групу 
 if [ -z "$WEB_ROOT_DIR" ];  then
   mkdir -p -m 0755 $newSiteRootDirectory
-  chown -R "$user:$user" $newSiteRootDirectory
   WEB_ROOT_DIR=$newSiteRootDirectory
 fi
 
@@ -82,14 +93,19 @@ generateVhost
 
 
 echo -e 
-coloredEcho 'New Virtual Host Created' green
+coloredEcho 'New Nginx Virtual Host Created' green
 echo -e 
 
 
 # Енейблим наш новый сайт
-a2ensite $name
-# Рестартуем Апач
-service apache2 reload
+if [ ! -f $sitesEnable$name.conf ]
+then
+    echo "Generate nginx conf file..."
+    sudo ln -s  $sitesAvailabledomain $sitesEnable$name.conf
+fi
+# Рестартуем NGINX
+echo "Restart nginx"
+sudo service nginx restart
 
 if [ "$port" = "80" ]; then
   siteUrl="http://$name/"

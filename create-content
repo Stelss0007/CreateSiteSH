@@ -66,9 +66,7 @@ else
                 <head></head>
                 <body>
                   <h2>It's work!</h2>
-                  <?php
-                echo 'PHP is working fine!';
-                  ?>
+                  <?php phpinfo() ?>
                 </body>
               </html>
               " > "$WEB_ROOT_DIR/index.php"
