@@ -168,6 +168,8 @@ case $modName in
   
   *)
       echo "Unknown command!"
-      echo "Read doc. zena help"
+      echo "zena help"
+      echo -e
+      showHelp
   ;;
 esac
