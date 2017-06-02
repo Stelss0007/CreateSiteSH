@@ -1,0 +1,10 @@
+
+usage: zena create-site [<param>] [-n <site-name>] [-d <site-root-directory>] [-p port]
+
+You can use next params:
+
+    apache          - Create host file for apache, create host directory, create site content and restart apache server
+    nginx           - Create host file for nginx, create host directory, create site content and restart nginx server
+    apache+nginx    - Create host file for apache and nginx, create host directory, create site content and restart apache and nginx servers
+
+'zena help [<command>]' show help for command

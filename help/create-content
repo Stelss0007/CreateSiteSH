@@ -1,0 +1,8 @@
+
+usage: zena create-content
+
+Create content for site. You can install Symfony, Yii, Laravel, WP projects, etc ...
+You can generate simple index.html or index.php
+And you can clone git repository and set up host for this project
+
+'zena help [<command>]' show help for command
