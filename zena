@@ -115,8 +115,10 @@ while getopts ':hs:n:d:' option; do
 done
 shift $((OPTIND - 1))
 
-
-
+if [ -z $modName ]
+then
+    showHelp
+fi
 
 case $modName in
 
