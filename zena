@@ -23,6 +23,43 @@ function showHelp() {
     exit
 }
 
+
+function prepareVariables() {
+    # Читаем даные с консоли, если не пердался параметром с консоли
+    # Если парматр названия сайта не передавался, запросм его
+    if [ -z "$name" ];  then
+      read -p "Enter SiteName (test): " name
+      name=${name:-test}
+    fi
+
+    isRealDomain=$(checkIfIsDomainName $name)
+
+    if [ "$isRealDomain" = "No" ]; then
+        name=$name$domainSufix
+    fi
+
+
+    # Предложим путь для директории сайта относительно текущего каталога
+    newSiteRootDirectory="$sitesRootDirectory/$name"
+
+    #Читаем даные с консоли, если не пердался параметром с консоли
+    # Если парматр директории сайта не передавался, запросм его
+    if [ -z "$WEB_ROOT_DIR" ];  then
+      read -p "Enter WebRoot directory ($newSiteRootDirectory): " WEB_ROOT_DIR
+    fi
+
+
+    # Если параметр $WEB_ROOT_DIR не пустой, создадим директорию, если ее нет,
+    # установим права и назанчим пользователя и групу
+    if [ -z "$WEB_ROOT_DIR" ];  then
+      mkdir -p -m 0755 $newSiteRootDirectory
+      #chown -R "$user:$user" $newSiteRootDirectory
+      WEB_ROOT_DIR=$newSiteRootDirectory
+    fi
+
+    echo $WEB_ROOT_DIR
+}
+
 # Название модуля
 modName=$1
 
@@ -36,7 +73,10 @@ if [ "$modName" != "-h" ];then
     shift; #remove first argiment from option list
 fi
 
-checkConfigurationFile
+if [ -f "$confFile" ]
+  then
+  $HOME/$APP_NAME/configure.sh
+fi
 
 source "$confFile"
 
@@ -76,39 +116,6 @@ done
 shift $((OPTIND - 1))
 
 
-# Читаем даные с консоли, если не пердался параметром с консоли
-# Если парматр названия сайта не передавался, запросм его
-if [ -z "$name" ];  then
-  read -p "Enter SiteName (test): " name
-  name=${name:-test}
-fi
-
-isRealDomain=$(checkIfIsDomainName $name)
-
-if [ "$isRealDomain" = "No" ]; then
-    name=$name$domainSufix
-fi
-
-
-# Предложим путь для директории сайта относительно текущего каталога
-newSiteRootDirectory="$sitesRootDirectory/$name"
-
-#Читаем даные с консоли, если не пердался параметром с консоли
-# Если парматр директории сайта не передавался, запросм его
-if [ -z "$WEB_ROOT_DIR" ];  then
-  read -p "Enter WebRoot directory ($newSiteRootDirectory): " WEB_ROOT_DIR
-fi
-
-
-# Если параметр $WEB_ROOT_DIR не пустой, создадим директорию, если ее нет,
-# установим права и назанчим пользователя и групу
-if [ -z "$WEB_ROOT_DIR" ];  then
-  mkdir -p -m 0755 $newSiteRootDirectory
-  #chown -R "$user:$user" $newSiteRootDirectory
-  WEB_ROOT_DIR=$newSiteRootDirectory
-fi
-
-echo $WEB_ROOT_DIR
 
 
 case $modName in
@@ -117,15 +124,18 @@ case $modName in
       $HOME/$APP_NAME/configure.sh
   ;;
 
-  create-host) 
+  create-host)
+      prepareVariables
       $HOME/$APP_NAME/create-host.sh $serverType $name $WEB_ROOT_DIR $port
   ;;
 
-   create-content) 
+   create-content)
+      prepareVariables
       $HOME/$APP_NAME/create-content.sh $WEB_ROOT_DIR $name
   ;;
 
   create-site)
+      prepareVariables
       $HOME/$APP_NAME/create-host.sh $serverType $name $WEB_ROOT_DIR
       $HOME/$APP_NAME/create-content.sh $WEB_ROOT_DIR $name
 
