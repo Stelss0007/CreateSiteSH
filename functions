@@ -56,7 +56,7 @@ function checkConfigurationFile() {
     echo -e
     echo 'System detect your firs starting.'
     echo -e
-    echo 'Please answer for nex questions:'
+    echo 'Please answer for next questions:'
     echo -e
     createConfigurationFile
     echo -e
@@ -68,7 +68,12 @@ function checkConfigurationFile() {
 } 
 
 function createConfigurationFile() {
-  read -p "Enter your webserver (apache|nginx|nginx+apache): " serverType
+  echo "Enter your webserver:"
+  echo "    apache"
+  echo "    nginx"
+  echo "    nginx+apache"
+  echo -e
+  read -p " (apache): " serverType
   serverType=${serverType:-apache}
 
   read -p "Enter your webserver port (80): " confPort
