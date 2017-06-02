@@ -73,7 +73,7 @@ if [ "$modName" != "-h" ];then
     shift; #remove first argiment from option list
 fi
 
-if [ -f "$confFile" ]
+if [ ! -f "$confFile" ]
   then
   $HOME/$APP_NAME/configure.sh
 fi
