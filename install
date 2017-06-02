@@ -1,17 +1,28 @@
 #!/bin/bash
 
-echo 'Zena Install'
-
 APP_DIR="$HOME/zena"
+
+function install() {
+    mkdir -p -m 0755 $APP_DIR
+    git clone git@github.com:Stelss0007/CreateSiteSH.git "$APP_DIR"
+    cp $APP_DIR/zena $HOME/bin/zena
+
+    zena configure
+}
+
+
+echo 'Zena Install'
 
 echo $APP_DIR
 
 if [ ! -d "$APP_DIR" ];  then
-    mkdir -p -m 0755 $APP_DIR
-    git clone git@github.com:Stelss0007/CreateSiteSH.git "$APP_DIR"
-    cp $APP_DIR/zena $HOME/bin/zena
+    install
 else
-    echo 'zena already exists!'
+    echo "Remove old version..."
+    rm -rf  "$APP_DIR"
+    echo "Removed."
+    echo "Install new version..."
+    install
 fi
 
 

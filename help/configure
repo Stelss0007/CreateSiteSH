@@ -1,0 +1,9 @@
+
+usage: zena configure
+
+Set Up deafult configuration.
+You can set default:
+     serve-name  - Server most be used as default (apache|nginx|nginx+apache)
+     site-sufix  - sufix added after 'sitename'. For example if you type site name 'test', then zena added sufix '.site.visual', and sitename now 'test.site.visual'
+
+'zena help [<command>]' show help for command

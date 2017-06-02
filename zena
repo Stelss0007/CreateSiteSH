@@ -5,34 +5,47 @@ set -e
 BASEDIR=$(dirname "$0")
 APP_NAME='zena'
 
+
 confFile="$HOME/$APP_NAME/create-site.conf"
 functionFile="$HOME/$APP_NAME/functions"
 
 source "$functionFile"
 
-checkConfigurationFile
+function showHelp() {
+    case "$1" in
+        "configure"|"update"|"create-host"|"create-site"|"create-content")
+            echo "$(cat $HOME/$APP_NAME/help/$1)"
+            exit
+        ;;
+    esac
 
-source "$confFile"
+    echo "$(cat $HOME/$APP_NAME/help/main)"
+    exit
+}
 
 # Название модуля
 modName=$1
+
+if [ "$modName" = "help" -o "$modName" = "-h" ]
+then
+    showHelp $2
+    exit 0
+fi
+
 if [ "$modName" != "-h" ];then
     shift; #remove first argiment from option list
 fi
 
-function showHelp() {
-    echo "You can use this keys:"
-    echo "  create-host -- to generate host file and create directory"
-    echo "  create-content -- to generate content (create index file, generete Symfony, YII2, Laravel project, WP, etc...."
-    echo "  create-site -- to generate host, and generate content"
-}
+checkConfigurationFile
+
+source "$confFile"
 
 # Текущая директория
 sitesRootDirectory="$(pwd)"
 serverType="apache"
 name=""
 WEB_ROOT_DIR=""
-port="80"
+#port="80"
 
 while getopts ':hs:n:d:' option; do
 
@@ -100,17 +113,21 @@ echo $WEB_ROOT_DIR
 
 case $modName in
 
+  configure)
+      $HOME/$APP_NAME/configure.sh
+  ;;
+
   create-host) 
-      $HOME/$APP_NAME/create-host $serverType $name $WEB_ROOT_DIR $port
+      $HOME/$APP_NAME/create-host.sh $serverType $name $WEB_ROOT_DIR $port
   ;;
 
    create-content) 
-      $HOME/$APP_NAME/create-content $WEB_ROOT_DIR $name
+      $HOME/$APP_NAME/create-content.sh $WEB_ROOT_DIR $name
   ;;
 
   create-site)
-      $HOME/$APP_NAME/create-host $serverType $name $WEB_ROOT_DIR
-      $HOME/$APP_NAME/create-content $WEB_ROOT_DIR $name
+      $HOME/$APP_NAME/create-host.sh $serverType $name $WEB_ROOT_DIR
+      $HOME/$APP_NAME/create-content.sh $WEB_ROOT_DIR $name
 
       if [ "$port" = "80" ]; then
           siteUrl="http://$name/"
@@ -136,6 +153,7 @@ case $modName in
 
   help)
       showHelp
+      exit 0
   ;;
   
   *)

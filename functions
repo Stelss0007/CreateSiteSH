@@ -68,20 +68,23 @@ function checkConfigurationFile() {
 } 
 
 function createConfigurationFile() {
-  read -p "Enter your system UserName (currentUserName): " confUserName
-  confUserName=${confUserName:-currentUserName}
+  read -p "Enter your webserver (apache|nginx|nginx+apache): " serverType
+  serverType=${serverType:-apache}
+
   read -p "Enter your webserver port (80): " confPort
   confPort=${confPort:-80}
+
   read -p "Enter your websites sufix (.site.visual): " confWebsiteSufix
   confWebsiteSufix=${confWebsiteSufix:-.site.visual}
+
   read -p "Enter your PHPStorm CLI path, empty if not exist (''): " confphpStormCLI
   confphpStormCLI=${confphpStormCLI:-""}
   
   echo "
 # Здесь нужно настроить под себя
 
-# Мой текущий юзер под которым я работаю, он нужен для того чтобы создавть директории и запускать скрипты от его имени (git, composer)
-user='$confUserName'
+# Вебсервер поумолчанию
+serverType='$serverType'
 
 # Порт вебсервера
 port='$confPort'

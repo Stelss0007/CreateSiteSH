@@ -1,0 +1,15 @@
+
+usage: zena <command> [-s <server-name (apache, nginx, apache+nginx)>] [-n <site-name>] [-d <site-root-directory>] [-p port]
+
+The most commonly used zena commands are:
+   update         Update Zena to new version
+   configure      Set up default configuration
+   create-host    Create host on local server
+   create-site    Create local site. Create host on local server (apache, nginx, apache+nginx) and create content for new site. See create-content description
+   create-content Create site content on current directory (index.html, index.php, Symfony Project, Yii2 Project, WP Project, etc..)
+
+OPTIOS [-s <server-name (apache, nginx, apache+nginx)>] [-n <site-name>] [-d <site-root-directory>]
+
+'zena help [<command>]' show help for command
+
+
