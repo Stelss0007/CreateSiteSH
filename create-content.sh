@@ -156,6 +156,9 @@ else
 
             if [ -n "$rootPath" ]; then
               WEB_ROOT_DIR="$WEB_ROOT_DIR/$rootPath"
+
+              generateVhost
+              sudo service apache2 reload
             fi
       ;;
 
